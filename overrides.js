@@ -1,4 +1,4 @@
-// Delivery Days overrides: pacing, progression zoom, income, bridges, menu button, and zoom lock.
+// Delivery Days overrides: pacing, progression zoom, income, bridges, menu button, and compact HUD.
 (function(){
   function safeSay(msg){ try { say(msg); } catch (_) {} }
   function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
@@ -24,7 +24,7 @@
   }
   function startZoomFor(day){
     const week=Math.floor(Math.max(1,day||1)/7);
-    return Math.max(0.86, Math.min(2.05, 1.92 - week*0.13));
+    return Math.max(0.80, Math.min(1.22, 1.16 - week*0.055));
   }
   function revealRadius(){
     const g=S.g; if(!g) return GRID*7;
@@ -50,6 +50,20 @@
     return Math.max(0, Math.round(base*(1 + r.due/decay)));
   }
   window.requestValue=requestValue;
+
+  function circleBtn(id,label,x,y,r,k='pale',s=18){
+    const col=k==='dark'?C.ink:k==='red'?C.red:k==='teal'?C.teal:C.cream;
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=k==='pale'?'#c9d8d4':'rgba(255,255,255,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();
+    txt(label,x,y,s,k==='pale'?C.ink:'white','center',true);
+    S.ui.push({id,x:x-r,y:y-r,w:r*2,h:r*2});
+  }
+  function statPill(label,value,x,y,w=110){
+    fill(x,y,w,38,12,'rgba(251,250,244,.92)');
+    txt(label,x+12,y+12,10,C.muted,'left',true);
+    txt(value,x+12,y+28,15,C.ink,'left',true);
+  }
 
   start=function(level){
     const g={l:level,caps:caps(level.id),day:1,clock:0,cash:level.cash,tiles:15,bridges:level.map.river?99:0,late:0,score:0,nodes:[],roads:[],vans:[],reserve:new Map(),blueAdded:level.id>1,lastGrow:0};
@@ -167,16 +181,15 @@
 
   hud=function(){
     const g=S.g;
-    fill(12,8,820,64,16,'rgba(251,250,244,.95)');
-    drawDayClock(82,43);
-    txt(`Target ${g.l.target}`,128,25,14,C.ink,'left',true);
-    txt(`£${g.cash}`,128,48,15,C.ink,'left',true);
-    txt(`Road ${g.tiles}`,206,48,15,C.ink,'left',true);
-    txt(`Fails ${g.late}/${g.l.fail}`,326,48,15,g.late>=g.l.fail-2?C.red:C.ink,'left',true);
-    btn('menu','Menu',486,25,64,30,'pale',13);
-    btn('pause',S.paused?'Play':'Pause',558,25,72,30,S.paused?'teal':'pale',14);
-    btn('speed',S.speed===2?'2x':'1x',638,25,60,30,S.speed===2?'red':'pale',14);
-    btn('edit',S.edit?'Finish':'Roads',706,25,96,30,S.edit?'red':'pale',14);
+    drawDayClock(62,50);
+    statPill('TARGET', String(g.l.target), 12, 86);
+    statPill('ROADS', String(g.tiles), 12, 130);
+    statPill('LATE', `${g.late}/${g.l.fail}`, 12, 174);
+    statPill('CASH', `£${g.cash}`, 12, 218);
+    circleBtn('menu','≡',600,46,24,'pale',24);
+    circleBtn('pause',S.paused?'▶':'Ⅱ',656,46,24,S.paused?'teal':'pale',20);
+    circleBtn('speed',S.speed===2?'2×':'1×',712,46,24,S.speed===2?'red':'pale',16);
+    circleBtn('edit',S.edit?'✓':'✎',768,46,24,S.edit?'red':'pale',20);
   };
 
   const originalBottom=bottom;
@@ -186,7 +199,7 @@
     if(S.infoOpen){
       card(64,210,500,126);
       txt('Quick Info',88,234,18,C.ink,'left',true);
-      txt('Map zoom is locked during play and only expands each week.',88,260,14,C.ink);
+      txt('Initial view now shows the full starter area.',88,260,14,C.ink);
       txt('Pinch zoom is only available while editing roads.',88,284,14,C.ink);
       txt('You start with 15 road tiles.',88,308,14,C.ink);
       txt('Cash rises with distance; late deliveries pay less.',88,326,13,C.muted);
