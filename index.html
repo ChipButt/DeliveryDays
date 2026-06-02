@@ -4,11 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
   <meta name="theme-color" content="#dfe9e6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Delivery Days</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="appShell">
+    <button id="fullscreenButton" type="button">Tap to enter full screen</button>
     <canvas id="game" width="844" height="390" aria-label="Delivery Days logistics game"></canvas>
   </div>
   <script type="module" src="game.js"></script>
