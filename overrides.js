@@ -1,4 +1,4 @@
-// Delivery Days overrides: pacing, progression zoom, income, bridges, and map reveal.
+// Delivery Days overrides: pacing, progression zoom, income, bridges, menu button, and zoom lock.
 (function(){
   function safeSay(msg){ try { say(msg); } catch (_) {} }
   function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
@@ -38,6 +38,11 @@
     S.cam.y=h.y-H/(2*S.cam.z);
     clampCam();
   }
+  function lockZoomForCurrentDay(){
+    if(!S.g || S.edit) return;
+    S.cam.z=startZoomFor(S.g.day);
+    clampCam();
+  }
   function requestValue(r){
     const base=r.baseValue || 0;
     if(r.due>=0) return base;
@@ -46,9 +51,8 @@
   }
   window.requestValue=requestValue;
 
-  const originalStart=start;
   start=function(level){
-    const g={l:level,caps:caps(level.id),day:1,clock:0,cash:level.cash,tiles:level.tiles,bridges:level.map.river?99:0,late:0,score:0,nodes:[],roads:[],vans:[],reserve:new Map(),blueAdded:level.id>1,lastGrow:0};
+    const g={l:level,caps:caps(level.id),day:1,clock:0,cash:level.cash,tiles:15,bridges:level.map.river?99:0,late:0,score:0,nodes:[],roads:[],vans:[],reserve:new Map(),blueAdded:level.id>1,lastGrow:0};
     const h=mapHub(level);
     const hn=node('hub',h.x,h.y,h.name,h.colour); hn.drivers=2+Math.floor(level.id/4); hn.idle=hn.drivers; g.nodes.push(hn);
     if(level.id>1){
@@ -59,10 +63,9 @@
     closePlaces.slice(0,3).forEach(p=>g.nodes.push(node(p[0],p[1],p[2],p[3])));
     S.g=g; S.screen='game'; S.edit=false; S.paused=false; S.speed=1; S.panel=null; S.infoOpen=false;
     S.cam={x:0,y:0,z:startZoomFor(1)}; centreOnPrimaryHub();
-    safeSay(level.id===1?'Start local. The map expands each week.':'Multiple hubs are active from the start.');
+    safeSay(level.id===1?'Start local. You begin with 15 road tiles.':'You begin with 15 road tiles.');
   };
 
-  const originalAddBlueHub=addBlueHub;
   addBlueHub=function(){
     const g=S.g; if(!g||g.blueAdded) return;
     const h=(g.l.map.extraHubs&&g.l.map.extraHubs[0])||[primaryHub().x+GRID*7,primaryHub().y+GRID*2,'Blue Hub','blue'];
@@ -98,7 +101,6 @@
     }
   };
 
-  const originalAddRoad=addRoad;
   addRoad=function(a,b){
     const g=S.g; if(!g) return;
     if(eq(a,b)||g.roads.some(r=>(eq(r.a,a)&&eq(r.b,b))||(eq(r.a,b)&&eq(r.b,a)))) return;
@@ -155,6 +157,7 @@
   update=function(dt){
     const before=S.g?.day;
     originalUpdate(dt);
+    if(S.g && !S.edit) lockZoomForCurrentDay();
     if(S.g && before!==S.g.day && S.g.day%7===0){
       S.cam.z=startZoomFor(S.g.day);
       clampCam();
@@ -162,20 +165,53 @@
     }
   };
 
+  hud=function(){
+    const g=S.g;
+    fill(12,8,820,64,16,'rgba(251,250,244,.95)');
+    drawDayClock(82,43);
+    txt(`Target ${g.l.target}`,128,25,14,C.ink,'left',true);
+    txt(`£${g.cash}`,128,48,15,C.ink,'left',true);
+    txt(`Road ${g.tiles}`,206,48,15,C.ink,'left',true);
+    txt(`Fails ${g.late}/${g.l.fail}`,326,48,15,g.late>=g.l.fail-2?C.red:C.ink,'left',true);
+    btn('menu','Menu',486,25,64,30,'pale',13);
+    btn('pause',S.paused?'Play':'Pause',558,25,72,30,S.paused?'teal':'pale',14);
+    btn('speed',S.speed===2?'2x':'1x',638,25,60,30,S.speed===2?'red':'pale',14);
+    btn('edit',S.edit?'Finish':'Roads',706,25,96,30,S.edit?'red':'pale',14);
+  };
+
   const originalBottom=bottom;
   bottom=function(){
     if(S.edit) return originalBottom();
     btn('info','i',18,340,42,34,'pale',20);
     if(S.infoOpen){
-      card(64,210,475,126);
+      card(64,210,500,126);
       txt('Quick Info',88,234,18,C.ink,'left',true);
-      txt('Map starts local and expands every week.',88,260,14,C.ink);
-      txt('Vans are faster. Cash rises with road distance.',88,284,14,C.ink);
-      txt('Late deliveries pay less each day until £0.',88,308,14,C.ink);
-      txt('River maps always allow bridge crossings.',88,326,13,C.muted);
+      txt('Map zoom is locked during play and only expands each week.',88,260,14,C.ink);
+      txt('Pinch zoom is only available while editing roads.',88,284,14,C.ink);
+      txt('You start with 15 road tiles.',88,308,14,C.ink);
+      txt('Cash rises with distance; late deliveries pay less.',88,326,13,C.muted);
     }
   };
 
   const originalAction=action;
-  action=function(id){ if(id==='info'){S.infoOpen=!S.infoOpen;return;} return originalAction(id); };
+  action=function(id){
+    if(id==='info'){S.infoOpen=!S.infoOpen;return;}
+    if(id==='menu'){
+      S.screen='menu'; S.paused=false; S.edit=false; S.panel=null; S.infoOpen=false; S.pointers?.clear?.(); S.drag=null; S.pinch=null;
+      return;
+    }
+    if(id==='edit'){
+      S.edit=!S.edit;
+      if(S.edit){S.paused=true;S.tool='draw';safeSay('Edit mode: choose Draw, Delete, or Pan. Pinch zoom is enabled.');}
+      else{S.paused=false;lockZoomForCurrentDay();safeSay('Road editing finished.');}
+      S.panel=null;
+      return;
+    }
+    return originalAction(id);
+  };
+
+  const originalSetPinch=setPinch;
+  setPinch=function(){ if(!S.edit){S.pinch=null;return;} return originalSetPinch(); };
+  const originalUpdatePinch=updatePinch;
+  updatePinch=function(){ if(!S.edit){S.pinch=null;lockZoomForCurrentDay();return;} return originalUpdatePinch(); };
 })();
