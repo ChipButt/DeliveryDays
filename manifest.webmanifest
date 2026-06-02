@@ -1,0 +1,12 @@
+{
+  "name": "Delivery Days",
+  "short_name": "Delivery Days",
+  "description": "A mobile logistics survival game about roads, hubs and deliveries.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#dfe9e6",
+  "theme_color": "#dfe9e6",
+  "icons": []
+}
