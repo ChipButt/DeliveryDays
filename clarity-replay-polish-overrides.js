@@ -157,6 +157,7 @@
       finishGuide();
       return;
     }
+    if(id === 'guideBlocker') return;
     return previousAction(id);
   };
 
@@ -196,7 +197,9 @@
       {title:'Watch the urgent badges', body:'Numbers above locations show days left. Red warnings mean that delivery needs attention now.'}
     ];
     const s = steps[Math.max(0, Math.min(steps.length-1, S.firstRunGuideStep))];
-    S.ui = S.ui.filter(u => !String(u.id).startsWith('guide'));
+    // While the guide is visible, only guide controls should be clickable.
+    // The final blocker sits behind the buttons in hit-test order, catching taps elsewhere.
+    S.ui = [];
     fill(0,0,W,H,0,'rgba(30,40,44,.18)');
     const x=188,y=70,w=468,h=210;
     card(x,y,w,h);
@@ -205,6 +208,7 @@
     txt(`Step ${S.firstRunGuideStep+1} of ${steps.length}`,x+w/2,y+138,13,C.muted,'center',true);
     btn('guideSkip','Skip',x+80,y+160,112,34,'pale',15);
     btn('guideNext',S.firstRunGuideStep === steps.length-1 ? 'Got it' : 'Next',x+w-192,y+160,112,34,'teal',15);
+    S.ui.push({id:'guideBlocker',x:0,y:0,w:W,h:H});
   }
 
   const previousStart = start;
